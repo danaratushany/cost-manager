@@ -1,7 +1,18 @@
+/* index.css
+   Global CSS for the whole app.
+   Notes:
+   - We keep this file minimal because most styling is handled by MUI Theme (App.jsx).
+   - Here we only set safe global defaults (layout, root sizing, and a few basic elements).
+*/
+
+/* Use light color-scheme so the browser renders built-in UI (scrollbars, form controls) in light mode.
+   MUI theme controls the actual app colors. */
 :root {
     color-scheme: light;
 }
 
+/* Make sure the full page and React root can stretch to 100% height/width.
+   This helps MUI layout components (Container/Box) behave consistently. */
 html,
 body,
 #root {
@@ -9,26 +20,37 @@ body,
     height: 100%;
 }
 
+/* Remove default browser spacing and avoid flex tricks that can break centering/layout.
+   We keep the body as a normal block flow. */
 body {
     margin: 0;
     padding: 0;
     display: block;
 }
 
+/* Links:
+   Keep them in the pink palette and remove underline by default.
+   MUI components might override this when needed. */
 a {
     font-weight: 500;
     color: #FDA4BA;
     text-decoration: inherit;
 }
+
 a:hover {
     color: #FDA4BA;
 }
 
+/* Optional: Default h1 sizing.
+   Most headings in the app are MUI Typography, so this is rarely used. */
 h1 {
     font-size: 3.2em;
     line-height: 1.1;
 }
 
+/* Default button styling:
+   Most buttons in the app are MUI Buttons, so this mainly affects plain <button> elements
+   (if you ever use one outside MUI). */
 button {
     border-radius: 8px;
     border: 1px solid transparent;
@@ -39,10 +61,18 @@ button {
     cursor: pointer;
     transition: border-color 0.25s;
 }
+
+/* Button hover:
+   Keep the hover border in the pink palette. */
 button:hover {
     border-color: #FDA4BA;
 }
+
+/* Focus styles:
+   You requested to remove the blue focus outline completely.
+   Note: This reduces accessibility for keyboard navigation.
+   If you ever want a softer pink focus instead, we can restore it with a custom style. */
 button:focus,
 button:focus-visible {
-    outline: 4px auto -webkit-focus-ring-color;
+    outline: none;
 }

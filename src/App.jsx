@@ -20,9 +20,14 @@ import SettingsPage from "./pages/SettingsPage";
 import { openCostsDB } from "./lib/idb";
 
 export default function App() {
+    //  Which tab is currently selected in the UI
     const [tab, setTab] = useState(0);
+
+    //  DB wrapper object returned from openCostsDB (contains addCost/getReport/...)
     const [db, setDb] = useState(null);
 
+    //  Open the IndexedDB connection ONCE when the app mounts
+    //  We keep an isMounted flag to prevent setting state if the component unmounts
     useEffect(() => {
         let isMounted = true;
 
@@ -36,7 +41,10 @@ export default function App() {
         };
     }, []);
 
+    //  Create the MUI theme once (useMemo)
+    //  This theme controls the pink palette and styling for MUI components
     const theme = useMemo(() => {
+        //  Colors taken from your palette images (pink theme)
         const COLORS = {
             piggyPink: "#FDDDE6",
             cottonCandy: "#FFBCD9",
@@ -50,7 +58,9 @@ export default function App() {
             rouge: "#F26B8A",
         };
 
+        //  MUI theme object
         return createTheme({
+            //  Base colors used by the entire UI
             palette: {
                 mode: "light",
                 primary: { main: COLORS.frenchPink },
@@ -61,13 +71,20 @@ export default function App() {
                 },
                 text: { primary: "#2b2b2b" },
             },
+
+            //  Global rounding (but not too round)
             shape: { borderRadius: 8 },
+
+            //  Font settings
             typography: {
                 fontFamily:
                     'system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji"',
                 h6: { fontWeight: 800 },
             },
+
+            //  Component-level styling overrides
             components: {
+                //  Top AppBar gradient background
                 MuiAppBar: {
                     styleOverrides: {
                         root: {
@@ -76,6 +93,8 @@ export default function App() {
                         },
                     },
                 },
+
+                //  Tabs indicator style
                 MuiTabs: {
                     styleOverrides: {
                         indicator: {
@@ -85,6 +104,8 @@ export default function App() {
                         },
                     },
                 },
+
+                //  Tab text style
                 MuiTab: {
                     styleOverrides: {
                         root: {
@@ -94,17 +115,23 @@ export default function App() {
                         },
                     },
                 },
+
+                //  Paper style (cards)
                 MuiPaper: {
                     styleOverrides: {
-                        root: { borderRadius: 12 }, // עדין, לא כדור
+                        root: { borderRadius: 12 },
                     },
                 },
+
+                //  Buttons style
                 MuiButton: {
                     styleOverrides: {
                         root: { borderRadius: 12, fontWeight: 800 },
                         containedPrimary: { boxShadow: "0 10px 18px rgba(0,0,0,0.12)" },
                     },
                 },
+
+                //  Tables container style
                 MuiTableContainer: {
                     styleOverrides: {
                         root: {
@@ -115,11 +142,15 @@ export default function App() {
                         },
                     },
                 },
+
+                //  Table header background
                 MuiTableHead: {
                     styleOverrides: {
                         root: { backgroundColor: COLORS.cottonCandy },
                     },
                 },
+
+                //  Table cell styling (header/body)
                 MuiTableCell: {
                     styleOverrides: {
                         head: {
@@ -127,9 +158,13 @@ export default function App() {
                             color: "#2b2b2b",
                             borderBottom: `2px solid ${alpha(COLORS.rouge, 0.25)}`,
                         },
-                        body: { borderBottom: `1px solid ${alpha(COLORS.rouge, 0.15)}` },
+                        body: {
+                            borderBottom: `1px solid ${alpha(COLORS.rouge, 0.15)}`,
+                        },
                     },
                 },
+
+                //  Table row zebra striping + hover effect
                 MuiTableRow: {
                     styleOverrides: {
                         root: {
@@ -142,6 +177,8 @@ export default function App() {
                         },
                     },
                 },
+
+                //  TextFields background + rounding
                 MuiTextField: {
                     styleOverrides: {
                         root: {
@@ -156,17 +193,23 @@ export default function App() {
         });
     }, []);
 
+    //  Wrapper that centers each page content
+    //  Responsive: on phone -> full width, on desktop -> maxWidth 720
     const CenterPage = ({ children }) => (
         <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Box sx={{ width: "100%", maxWidth: 720 }}>{children}</Box>
+            <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 720 } }}>
+                {children}
+            </Box>
         </Box>
     );
 
     return (
         <ThemeProvider theme={theme}>
+            {/*  CssBaseline resets default browser styles for consistent UI */}
             <CssBaseline />
 
-            {/* ✅ מעלים לגמרי את ה־focus ring (כחול/outline) בכל האתר */}
+            {/*  Remove focus ring (outline) completely across the entire site */}
+            {/*  Note: Accessibility-wise, focus rings are helpful, but you asked to remove them fully */}
             <GlobalStyles
                 styles={{
                     "*:focus": { outline: "none" },
@@ -178,27 +221,44 @@ export default function App() {
                 }}
             />
 
-            <Box
-                sx={{
-                    minHeight: "100vh",
-                    bgcolor: "background.default",
-                    display: "flex",
-                    justifyContent: "center",
-                }}
-            >
-                <Box sx={{ width: "100%", maxWidth: 960 }}>
-                    {/* Header */}
-                    <Box sx={{ px: 2, pt: 3 }}>
+            {/*  Full page background */}
+            <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
+                {/*  Centered main layout
+            Responsive:
+            - xs (phone): full width
+            - md+ (desktop): max width 960 and centered
+        */}
+                <Box
+                    sx={{
+                        width: "100%",
+                        maxWidth: { xs: "100%", md: 960 },
+                        mx: "auto",
+                    }}
+                >
+                    {/* ===================== HEADER ===================== */}
+                    <Box sx={{ px: { xs: 1, md: 2 }, pt: { xs: 1.5, md: 3 } }}>
                         <Paper elevation={10} sx={{ overflow: "hidden", borderRadius: "12px" }}>
                             <AppBar position="static" sx={{ boxShadow: "none" }}>
-                                {/* ✅ "Cost Manager" באמצע */}
+                                {/*  Center the title exactly */}
                                 <Toolbar sx={{ py: 1, px: 2, justifyContent: "center" }}>
                                     <Typography variant="h6" sx={{ color: "#fff", textAlign: "center" }}>
                                         Cost Manager
                                     </Typography>
                                 </Toolbar>
 
-                                <Tabs value={tab} onChange={(_, v) => setTab(v)} centered>
+                                {/*  Tabs navigation
+                    On phone: scrollable so tabs don’t overflow
+                    On desktop: still looks normal
+                */}
+                                <Tabs
+                                    value={tab}
+                                    onChange={(_, v) => setTab(v)}
+                                    variant="scrollable"
+                                    scrollButtons="auto"
+                                    allowScrollButtonsMobile
+                                    centered={false}
+                                    sx={{ px: 1 }}
+                                >
                                     <Tab label="Add Cost" />
                                     <Tab label="Monthly Report" />
                                     <Tab label="Charts" />
@@ -208,26 +268,37 @@ export default function App() {
                         </Paper>
                     </Box>
 
-                    {/* Main */}
-                    <Container maxWidth={false} sx={{ mt: 3, pb: 6, px: 2 }}>
+                    {/* ===================== MAIN CONTENT ===================== */}
+                    <Container
+                        maxWidth={false}
+                        sx={{
+                            mt: { xs: 2, md: 3 },
+                            pb: { xs: 3, md: 6 },
+                            px: { xs: 1, md: 2 },
+                        }}
+                    >
+                        {/* Add Cost Page */}
                         <Box hidden={tab !== 0}>
                             <CenterPage>
                                 <AddCostPage db={db} />
                             </CenterPage>
                         </Box>
 
+                        {/* Monthly Report Page */}
                         <Box hidden={tab !== 1}>
                             <CenterPage>
                                 <ReportPage db={db} />
                             </CenterPage>
                         </Box>
 
+                        {/* Charts Page */}
                         <Box hidden={tab !== 2}>
                             <CenterPage>
                                 <ChartsPage db={db} />
                             </CenterPage>
                         </Box>
 
+                        {/* Settings Page */}
                         <Box hidden={tab !== 3}>
                             <CenterPage>
                                 <SettingsPage />

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, Button, MenuItem, TextField, Typography, Alert } from "@mui/material";
 
+// Allowed currencies for the form dropdown
 const currencies = ["USD", "ILS", "GBP", "EURO"];
 
 export default function AddCostPage({ db }) {
@@ -14,27 +15,34 @@ export default function AddCostPage({ db }) {
         e.preventDefault();
         setStatus(null);
 
+        // Validate DB is ready (IndexedDB opens async)
         if (!db) {
             setStatus({ type: "error", msg: "Database not ready yet. Try again in a second." });
             return;
         }
 
-        if (sum === "" || Number.isNaN(Number(sum))|| Number(sum) <= 0) {
+        // Validate sum is a positive number
+        const sumNumber = Number(sum);
+        if (sum === "" || Number.isNaN(sumNumber) || sumNumber <= 0) {
             setStatus({ type: "error", msg: "Please enter a valid positive sum." });
             return;
         }
+
+        // Validate category is not empty
         if (!category.trim()) {
             setStatus({ type: "error", msg: "Please enter a category." });
             return;
         }
 
+        // Save cost in DB
         const added = await db.addCost({
-            sum: Number(sum),
+            sum: sumNumber,
             currency,
             category: category.trim(),
-            description: description.trim()
+            description: description.trim(),
         });
 
+        // Success feedback + reset form
         setStatus({ type: "success", msg: `Added! id=${added.id}` });
         setSum("");
         setCurrency("USD");
@@ -43,22 +51,90 @@ export default function AddCostPage({ db }) {
     }
 
     return (
-        <Box component="form" onSubmit={onSubmit} sx={{ maxWidth: 520, display: "grid", gap: 2 }}>
+        <Box
+            component="form"
+            onSubmit={onSubmit}
+            sx={{
+                // Keep a nice max width on desktop, but allow full width on mobile
+                width: "100%",
+                maxWidth: { xs: "100%", sm: 520 },
+
+                // Grid layout with responsive gaps
+                display: "grid",
+                gap: { xs: 1.5, sm: 2 },
+            }}
+        >
             <Typography variant="h5">Add Cost</Typography>
 
             {!db && <Alert severity="info">Loading database...</Alert>}
             {status && <Alert severity={status.type}>{status.msg}</Alert>}
 
-            <TextField label="Sum" value={sum} onChange={(e) => setSum(e.target.value)} inputMode="decimal" />
+            {/* Responsive row:
+          - On mobile (xs): 1 column (stack)
+          - On desktop (sm+): 2 columns (Sum + Currency side by side)
+      */}
+            <Box
+                sx={{
+                    display: "grid",
+                    gap: { xs: 1.5, sm: 2 },
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                }}
+            >
+                <TextField
+                    label="Sum"
+                    value={sum}
+                    onChange={(e) => setSum(e.target.value)}
+                    inputMode="decimal"
+                    fullWidth
+                />
 
-            <TextField select label="Currency" value={currency} onChange={(e) => setCurrency(e.target.value)}>
-                {currencies.map((c) => <MenuItem key={c} value={c}>{c}</MenuItem>)}
-            </TextField>
+                <TextField
+                    select
+                    label="Currency"
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    fullWidth
+                >
+                    {currencies.map((c) => (
+                        <MenuItem key={c} value={c}>
+                            {c}
+                        </MenuItem>
+                    ))}
+                </TextField>
+            </Box>
 
-            <TextField label="Category" value={category} onChange={(e) => setCategory(e.target.value)} />
-            <TextField label="Description" value={description} onChange={(e) => setDescription(e.target.value)} />
+            {/* Category: always full width */}
+            <TextField
+                label="Category"
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                fullWidth
+            />
 
-            <Button type="submit" variant="contained">Add</Button>
+            {/* Description: always full width */}
+            <TextField
+                label="Description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                fullWidth
+            />
+
+            {/* Button:
+          - On mobile: full width
+          - On desktop: normal width (fit-content) and aligned to left
+      */}
+            <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-start" } }}>
+                <Button
+                    type="submit"
+                    variant="contained"
+                    sx={{
+                        width: { xs: "100%", sm: "auto" },
+                        minHeight: 44, // better tap target on mobile
+                    }}
+                >
+                    Add
+                </Button>
+            </Box>
         </Box>
     );
 }

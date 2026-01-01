@@ -1,42 +1,48 @@
+/*
+This file includes some legacy Vite template styles.
+   The main UI styling is controlled by MUI Theme in App.jsx.
+*/
+
 #root {
     width: 100%;
     margin: 0;
     padding: 0;
-    text-align: initial;
+    text-align: initial; /* don't force center text */
 }
 
+/* Legacy Vite template styles (not used by the project UI).
+   Keeping them does not affect the app unless these classes are used.
+*/
 .logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+    height: 6em;
+    padding: 1.5em;
+    will-change: filter;
+    transition: filter 300ms;
 }
+
 .logo:hover {
-  filter: drop-shadow(0 0 2em #FDA4BA);
+    filter: drop-shadow(0 0 2em #FDA4BA);
 }
+
 .logo.react:hover {
-  filter: drop-shadow(0 0 2em #FDA4BA);
+    filter: drop-shadow(0 0 2em #FDA4BA);
 }
 
 @keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
 }
 
 @media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
+    a:nth-of-type(2) .logo {
+        animation: logo-spin infinite 20s linear;
+    }
 }
 
 .card {
-  padding: 2em;
+    padding: 2em;
 }
 
 .read-the-docs {
-  color: #888;
+    color: #888;
 }
