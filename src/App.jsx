@@ -10,6 +10,7 @@ import {
     CssBaseline,
     Paper,
     GlobalStyles,
+    useMediaQuery,
 } from "@mui/material";
 import { ThemeProvider, createTheme, alpha } from "@mui/material/styles";
 
@@ -193,13 +194,16 @@ export default function App() {
         });
     }, []);
 
+    //  Responsive detection:
+    //  On phone (sm and down) => Tabs should be scrollable
+    //  On desktop => Tabs should be centered normally
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
     //  Wrapper that centers each page content
     //  Responsive: on phone -> full width, on desktop -> maxWidth 720
     const CenterPage = ({ children }) => (
         <Box sx={{ display: "flex", justifyContent: "center" }}>
-            <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 720 } }}>
-                {children}
-            </Box>
+            <Box sx={{ width: "100%", maxWidth: { xs: "100%", md: 720 } }}>{children}</Box>
         </Box>
     );
 
@@ -224,10 +228,10 @@ export default function App() {
             {/*  Full page background */}
             <Box sx={{ minHeight: "100vh", bgcolor: "background.default" }}>
                 {/*  Centered main layout
-            Responsive:
-            - xs (phone): full width
-            - md+ (desktop): max width 960 and centered
-        */}
+                    Responsive:
+                    - xs (phone): full width
+                    - md+ (desktop): max width 960 and centered
+                */}
                 <Box
                     sx={{
                         width: "100%",
@@ -246,18 +250,24 @@ export default function App() {
                                     </Typography>
                                 </Toolbar>
 
-                                {/*  Tabs navigation
-                    On phone: scrollable so tabs don’t overflow
-                    On desktop: still looks normal
-                */}
+                                {/*  Tabs navigation (Responsive)
+                                    - Phone: scrollable (so it won’t overflow)
+                                    - Desktop: standard + centered (so it won’t “shift left”)
+                                */}
                                 <Tabs
                                     value={tab}
                                     onChange={(_, v) => setTab(v)}
-                                    variant="scrollable"
-                                    scrollButtons="auto"
-                                    allowScrollButtonsMobile
-                                    centered={false}
-                                    sx={{ px: 1 }}
+                                    variant={isMobile ? "scrollable" : "standard"}
+                                    scrollButtons={isMobile ? "auto" : false}
+                                    allowScrollButtonsMobile={isMobile}
+                                    centered={!isMobile}
+                                    sx={{
+                                        px: 1,
+                                        //  Force true centering on desktop (even if MUI adds internal spacing)
+                                        "& .MuiTabs-flexContainer": {
+                                            justifyContent: isMobile ? "flex-start" : "center",
+                                        },
+                                    }}
                                 >
                                     <Tab label="Add Cost" />
                                     <Tab label="Monthly Report" />
