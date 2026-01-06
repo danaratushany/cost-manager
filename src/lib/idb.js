@@ -1,11 +1,24 @@
 "use strict";
 
+// ======================================================
+// IndexedDB wrapper for Cost Manager (React / modules)
+// Requirements covered here:
+// - Promise-based API for IndexedDB
+// - Supports currency conversion via Fetch API
+// - Must work even if user did NOT set a rates URL in Settings
+//   -> fallback to "/rates.json" (from /public)
+// ======================================================
 
-//  DB store + localStorage key (camelCase to satisfy "small letters" rule)
+// Object store name
 const defaultStore = "costs";
+
+// localStorage key used by Settings page
 const ratesKey = "ratesUrl";
 
-//  Wrap IDB request callbacks in a Promise
+// Default rates endpoint (served from /public)
+const defaultRatesUrl = "/rates.json";
+
+// Wrap IDBRequest callbacks in a Promise
 function promisifyRequest(request) {
     return new Promise((resolve, reject) => {
         request.onsuccess = () => resolve(request.result);
@@ -13,34 +26,32 @@ function promisifyRequest(request) {
     });
 }
 
-//  Load exchange rates JSON from user-defined URL (Settings)
+// Load exchange rates JSON.
+// If Settings URL is missing -> fallback to "/rates.json" (requirement).
 async function fetchRates() {
-    const url = (localStorage.getItem(ratesKey) || "").trim();
-    if (!url) {
-        throw new Error("Rates URL is not set. Please set it in Settings.");
-    }
+    // Read URL from localStorage (set in Settings), else use default
+    let url = (localStorage.getItem(ratesKey) || "").trim();
+    if (!url) url = defaultRatesUrl;
 
-    //  Fetch rates from server
     const res = await fetch(url);
     if (!res.ok) {
-        throw new Error(`Failed to fetch rates (HTTP ${res.status}).`);
+        throw new Error(`Failed to fetch rates from ${url} (HTTP ${res.status}).`);
     }
 
     // Expected shape: {USD:1, GBP:0.6, EURO:0.7, ILS:3.4}
     return res.json();
 }
 
-//  Convert money between currencies using rates (1 USD = X currency)
+// Convert money between currencies using rates (1 USD = X currency).
+// Example: rates.ILS = 3.4 means 1 USD = 3.4 ILS.
 function convert(sum, fromCurrency, toCurrency, rates) {
     const from = String(fromCurrency);
     const to = String(toCurrency);
 
-    // Validate input
     const n = Number(sum);
     if (!Number.isFinite(n)) return 0;
     if (from === to) return n;
 
-    // Read rates for both currencies
     const fromRate = rates[from];
     const toRate = rates[to];
 
@@ -48,7 +59,7 @@ function convert(sum, fromCurrency, toCurrency, rates) {
         throw new Error("Unsupported currency in rates response.");
     }
 
-    // Convert: from -> USD -> to
+    // from -> USD -> to
     const usd = n / fromRate;
     return usd * toRate;
 }
@@ -57,7 +68,7 @@ function convert(sum, fromCurrency, toCurrency, rates) {
 export async function openCostsDB(databaseName, databaseVersion) {
     const openRequest = indexedDB.open(databaseName, databaseVersion);
 
-    //  Create store + indexes on first run / version bump
+    // Create store + indexes on first run / version bump
     openRequest.onupgradeneeded = () => {
         const db = openRequest.result;
 
@@ -72,51 +83,50 @@ export async function openCostsDB(databaseName, databaseVersion) {
         }
     };
 
-    //  Wait for open to finish
+    // Wait for open to finish
     const db = await promisifyRequest(openRequest);
 
-    //  Add a new cost entry (auto: createdAt/year/month)
+    // Add a new cost entry.
+    // IMPORTANT: We store the ORIGINAL currency in IndexedDB (requirement).
     async function addCost(cost) {
         const now = new Date();
 
         const costToSave = {
             sum: Number(cost.sum),
-            currency: String(cost.currency),
+            currency: String(cost.currency), // original currency is stored
             category: String(cost.category),
             description: String(cost.description),
+
+            // date of adding the item
             createdAt: now.toISOString(),
             year: now.getFullYear(),
             month: now.getMonth() + 1,
         };
 
-        // Write transaction
         const tx = db.transaction(defaultStore, "readwrite");
         const store = tx.objectStore(defaultStore);
 
-        // Save + return saved object (with generated id)
         const id = await promisifyRequest(store.add(costToSave));
         return { id, ...costToSave };
     }
 
-    //  Build monthly report (with currency conversion if needed)
+    // Build monthly report (with currency conversion if needed).
+    // We DO NOT override the stored currency in DB; we only add sumInTarget + targetCurrency.
     async function getReport(year, month, currency) {
         const y = Number(year);
         const m = Number(month);
         const targetCurrency = String(currency);
 
-        // Read transaction
         const tx = db.transaction(defaultStore, "readonly");
         const store = tx.objectStore(defaultStore);
         const index = store.index("year_month");
 
-        // Get all costs for this year+month
         const items = await promisifyRequest(index.getAll([y, m]));
 
-        // Check if we need conversion at all
+        // Only fetch rates if at least one item is in a different currency
         const needsRates = items.some((c) => String(c.currency) !== targetCurrency);
         const rates = needsRates ? await fetchRates() : null;
 
-        // Convert each cost to targetCurrency (if needed)
         const costs = items.map((c) => {
             const sumOriginal = Number(c.sum);
 
@@ -125,13 +135,12 @@ export async function openCostsDB(databaseName, databaseVersion) {
                 : sumOriginal;
 
             return {
-                ...c,
+                ...c, // keeps original sum + currency from DB
                 sumInTarget: Number(sumInTarget.toFixed(2)),
                 targetCurrency,
             };
         });
 
-        // Total in target currency
         const total = costs.reduce((acc, c) => acc + Number(c.sumInTarget), 0);
 
         return {
@@ -142,14 +151,13 @@ export async function openCostsDB(databaseName, databaseVersion) {
         };
     }
 
-    //  Sum totals by category for pie chart
+    // Sum totals by category for pie chart (in selected currency)
     async function getCategoryTotals(year, month, currency) {
         const r = await getReport(year, month, currency);
 
         const map = new Map();
         for (const c of r.costs) {
             const cat = String(c.category || "Other");
-
             const val = Number.isFinite(Number(c.sumInTarget))
                 ? Number(c.sumInTarget)
                 : Number(c.sum);
@@ -163,7 +171,7 @@ export async function openCostsDB(databaseName, databaseVersion) {
         }));
     }
 
-    // Get totals for each month in a year (bar chart)
+    // Get totals for each month in a year (bar chart), in selected currency
     async function getYearMonthlyTotals(year, currency) {
         const y = Number(year);
         const results = [];
@@ -176,6 +184,6 @@ export async function openCostsDB(databaseName, databaseVersion) {
         return results;
     }
 
-    //  Expose API for pages
+    // Expose API for pages
     return { addCost, getReport, getCategoryTotals, getYearMonthlyTotals };
 }
