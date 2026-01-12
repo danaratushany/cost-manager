@@ -42,8 +42,13 @@ export default function AddCostPage({ db }) {
             description: description.trim(),
         });
 
-        // Success feedback + reset form
-        setStatus({ type: "success", msg: `Added! id=${added.id}` });
+        // ✅ Success feedback (no id, because addCost returns only the required fields)
+        setStatus({
+            type: "success",
+            msg: `Added! ${added.sum} ${added.currency} (${added.category})`,
+        });
+
+        // Reset form
         setSum("");
         setCurrency("USD");
         setCategory("");
@@ -55,11 +60,8 @@ export default function AddCostPage({ db }) {
             component="form"
             onSubmit={onSubmit}
             sx={{
-                // Keep a nice max width on desktop, but allow full width on mobile
                 width: "100%",
                 maxWidth: { xs: "100%", sm: 520 },
-
-                // Grid layout with responsive gaps
                 display: "grid",
                 gap: { xs: 1.5, sm: 2 },
             }}
@@ -69,10 +71,6 @@ export default function AddCostPage({ db }) {
             {!db && <Alert severity="info">Loading database...</Alert>}
             {status && <Alert severity={status.type}>{status.msg}</Alert>}
 
-            {/* Responsive row:
-          - On mobile (xs): 1 column (stack)
-          - On desktop (sm+): 2 columns (Sum + Currency side by side)
-      */}
             <Box
                 sx={{
                     display: "grid",
@@ -103,7 +101,6 @@ export default function AddCostPage({ db }) {
                 </TextField>
             </Box>
 
-            {/* Category: always full width */}
             <TextField
                 label="Category"
                 value={category}
@@ -111,7 +108,6 @@ export default function AddCostPage({ db }) {
                 fullWidth
             />
 
-            {/* Description: always full width */}
             <TextField
                 label="Description"
                 value={description}
@@ -119,17 +115,13 @@ export default function AddCostPage({ db }) {
                 fullWidth
             />
 
-            {/* Button:
-          - On mobile: full width
-          - On desktop: normal width (fit-content) and aligned to left
-      */}
             <Box sx={{ display: "flex", justifyContent: { xs: "stretch", sm: "flex-start" } }}>
                 <Button
                     type="submit"
                     variant="contained"
                     sx={{
                         width: { xs: "100%", sm: "auto" },
-                        minHeight: 44, // better tap target on mobile
+                        minHeight: 44,
                     }}
                 >
                     Add
